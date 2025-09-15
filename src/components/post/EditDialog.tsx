@@ -4,16 +4,35 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, Di
 import { Button } from "../ui/button"
 import { TitleInput } from "../form/TitleInput"
 import BodyInput from "../form/BodyInput"
+import { PostFormData, postSchema } from "@/lib/validation/postSchema"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useEffect } from "react"
 
 type EditDialogProps = {
+    initialData?: PostFormData
     open: boolean
     setOpen: (val: boolean) => void
+    onUpdate: (data: PostFormData) => Promise<void>
 }
 
-export function EditDialog({ open, setOpen }: EditDialogProps) {
+// 投稿編集用ダイアログコンポーネント
+export function EditDialog({ initialData, open, setOpen, onUpdate }: EditDialogProps) {
+
+    // React Hook Formの初期化（Zodスキーマによるバリデーションを適用）
+    const { register, handleSubmit, formState: { errors }, reset } = useForm<PostFormData>({ resolver: zodResolver(postSchema) })
+
+    // ダイアログが開いたときに初期データでフォームをリセット
+    useEffect(() => {
+        // ダイアログが開いたらフォームを初期化
+        if (open && initialData) {
+            reset(initialData)
+        }
+    }, [open, initialData, reset])
 
     // フォーム送信時にPOSTデータを更新する
-    const onsubmit = () => {
+    const onsubmit = async (data: PostFormData) => {
+        await onUpdate(data)
         setOpen(false)
     }
     return (
@@ -22,7 +41,7 @@ export function EditDialog({ open, setOpen }: EditDialogProps) {
                 <Button variant="outline">Edit</Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]" onInteractOutside={(event) => { event.preventDefault() }}>
-                <form onSubmit={onsubmit}>
+                <form onSubmit={handleSubmit(onsubmit)}>
                     <DialogHeader>
                         <DialogTitle>Edit Post</DialogTitle>
                         <DialogDescription>
@@ -31,8 +50,8 @@ export function EditDialog({ open, setOpen }: EditDialogProps) {
                         </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4">
-                        <TitleInput outLineStyle="flex flex-col w-full gap-3" />
-                        <BodyInput outLineStyle="grid gap-3" />
+                        <TitleInput register={register} error={errors?.title} outLineStyle="flex flex-col w-full gap-3" />
+                        <BodyInput register={register} error={errors?.body} outLineStyle="grid gap-3" />
                     </div>
                     <DialogFooter>
                         <DialogClose asChild>
