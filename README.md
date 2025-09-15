@@ -1,5 +1,22 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## 機能概要
+
+- 投稿画面・編集画面（子画面）・削除確認画面
+- 新規登録・変更・削除機能
+
+<br>
+
+## 使用技術
+
+| Category | Technology Stack                  |
+| -------- | --------------------------------- |
+| Frontend | TypeScript, Next.j                |
+| Backend  | TypeScript, NestJS, Prisma        |
+| Database | MySQL                             |
+| Design   | Shadcn UI, Tailwind CSS           |
+| etc.     | React Hook Form, React Query, zod |
+
 ## Getting Started
 
 First, run the development server:
