@@ -2,41 +2,60 @@
 
 import dayjs from "dayjs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { EditDialog } from "./EditDialog"
 import { MyAlertDialog } from "../common/MyAlertDialog"
 import { Post } from "@/types/Post"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { deletePost, getPosts, updatePost } from "@/lib/api/post"
+import { PostFormData } from "@/lib/validation/postSchema"
 
 export default function PostListClient() {
-    const [posts, setPosts] = useState<Post[]>([])
     const [openDialogId, setOpenDialogId] = useState<number | null>(null)
-    // 削除ダイアログに渡す処理 TODO
-    const handleDel = (id: number) => {
-    }
+    const { data: posts = [], isLoading, error } = useQuery<Post[]>({
+        queryKey: ['posts'],
+        queryFn: getPosts
+    })
+    const queryClient = useQueryClient();
 
-    // 表データ取得
-    useEffect(() => {
-        const fetchPosts = async () => {
-            try {
-                const baseurl = process.env.NEXT_PUBLIC_API_BASE
-                const res = await fetch(`${baseurl}/api/posts`, {
-                    method: "GET",
-                    cache: "no-store",
-                })
-                if (!res.ok) {
-                    console.error("レスポンスステータス:", res.status)
-                    throw new Error("データ取得に失敗しました")
-                }
-                const data = await res.json()
-                setPosts(data)
-            } catch (error) {
-                console.error("投稿取得エラー:", error)
-            }
+    // 更新処理
+    const updateMutation = useMutation({
+        mutationFn: updatePost,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['posts'] })
+            console.log("更新成功")
+        },
+        onError: (error: unknown) => {
+            console.error("更新失敗", error)
         }
-
-        fetchPosts()
-    }, [])
-
+    })
+    // 削除処理
+    const deleteMutation = useMutation({
+        mutationFn: deletePost,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['posts'] })
+            console.log("削除成功")
+        },
+        onError: (error: unknown) => {
+            console.error("削除失敗", error)
+        }
+    })
+    // 編集画面に渡す処理
+    const handleUpdate = async (updatedData: PostFormData) => {
+        updateMutation.mutate(updatedData)
+    }
+    // 削除ダイアログに渡す処理
+    const handleDel = (id: number) => {
+        deleteMutation.mutate(id)
+    }
+    if (isLoading || error) {
+        return (
+            <div className="w-[750px] mx-auto mt-10 border rounded max-h-[300px]">
+                {isLoading && <span className="text-gray-500 text-lg">読み込み中...</span>}
+                {error && <span className="text-red-500 text-lg">エラーが発生しました</span>}
+            </div>
+        )
+    }
     return (
         <div className="w-[750px] mx-auto mt-10 border rounded max-h-[500px]">
             <Table className="w-full table-fixed">
@@ -62,11 +81,12 @@ export default function PostListClient() {
                                 </TableCell>
                                 <TableCell className="w-[70px] px-4 py-2">
                                     <EditDialog
+                                        onUpdate={handleUpdate}
                                         open={openDialogId === post.id}
                                         setOpen={(value: boolean) => {
                                             setOpenDialogId(value ? post.id : null)
                                         }}
-                                    />
+                                        initialData={{ id: post.id, title: post.title, body: post.body }} />
                                 </TableCell>
                                 <TableCell className="w-[70px] px-4 py-2">
                                     <MyAlertDialog
